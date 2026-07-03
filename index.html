@@ -179,6 +179,9 @@
           <div class="quality-label"><span>Ähnlichkeit zum Quadrat</span><span id="qualityPct">–</span></div>
           <div class="quality-track"><div class="quality-fill" id="qualityFill"></div></div>
         </div>
+        <div class="solve-row">
+          <button class="amber" id="btnCompare" disabled>Lösung erst bei (fast) perfektem Quadrat</button>
+        </div>
       </div>
 
       <div class="card" id="logCard" style="display:none;">
@@ -230,7 +233,7 @@
       <!-- SCHRITT 3 -->
       <section class="step" id="step3">
         <div class="step-num">SCHRITT 3 / 4</div>
-        <h2>Gleiche das Rechteck selbst an ein Quadrat an <span class="lock-badge" id="lock3"></span></h2>
+        <h2>Gleiche das Rechteck selbst an ein Quadrat an</h2>
         <p class="note" id="step3Intro">–</p>
 
         <!-- Panel A: y berechnen -->
@@ -329,28 +332,6 @@
             <button data-choice="prod">x<sub>n</sub> · y<sub>n</sub></button>
           </div>
           <div class="feedback" id="quiz2Feedback"></div>
-        </div>
-
-        <div class="quiz" id="task3" style="display:none;">
-          <p class="q">3. Wie kommst du nun auf die neue Seitenlänge x<sub>n+1</sub>? Formuliere deine eigene Rechenvorschrift.</p>
-          <div class="row">
-            <div class="field" style="flex:1;min-width:260px;">
-              <label for="formulaInput">Deine Formel für x<sub>n+1</sub></label>
-              <input type="text" id="formulaInput" placeholder="z. B. (x_n + A/x_n) / 2">
-            </div>
-            <button class="primary" id="btnCheckFormula">Prüfen</button>
-          </div>
-          <p class="sub" style="font-family:-apple-system,sans-serif;font-size:13px;margin-top:10px;">
-            Verfügbare Größen: <b>A</b> (Flächeninhalt) · <b>x_n</b> (aktuelle Seite) · <b>y_n</b> (fehlende Seite, = A/x_n)
-          </p>
-          <p class="sub" style="font-family:-apple-system,sans-serif;font-size:12.5px;">
-            Tipp zur Eingabe: xₙ schreibst du als <code>x_n</code>, yₙ als <code>y_n</code>, den Flächeninhalt als <code>A</code>. Division mit <code>/</code>, Multiplikation mit <code>*</code>, Klammern mit <code>( )</code>.
-          </p>
-          <div class="feedback" id="feedbackFormula"></div>
-          <div class="hint-row">
-            <button class="ghost" id="hintBtn_formula" disabled>Tipp in 60s</button>
-          </div>
-          <div class="hint-box" id="hintBox_formula">Tipp: Du hast x_n und y_n bei jeder Iteration auf dieselbe Weise zusammengeführt. Schreibe genau diese Rechnung mit den Variablen aus dieser Aufgabe auf.</div>
         </div>
 
         <div class="formula-box" id="formulaBox">
@@ -550,29 +531,13 @@
     const pct = Math.max(0, Math.min(100, q*100));
     $('qualityFill').style.width = pct + '%';
     $('qualityPct').textContent = pct.toFixed(2) + ' %';
-  }
-
-  function isSolved(){
-    return xn.toFixed(4) === Math.sqrt(A).toFixed(4);
-  }
-
-  function revealSolution(){
-    document.querySelectorAll('#step3 .toolcard').forEach(tc => tc.classList.add('disabled'));
-    $('lock3').textContent = '🔒 gelöst – gesperrt bis Neustart';
-    $('lock3').style.display = 'inline-block';
-    $('step3').classList.add('locked');
-
-    const exact = Math.sqrt(A);
-    $('cmpApprox').textContent = fmt(xn);
-    $('cmpExact').textContent = fmt(exact);
-    $('cmpDiff').textContent = fmt(Math.abs(xn - exact));
-    $('cmpMsg').textContent = 'Sehr genau – dein Rechteck ist praktisch ein Quadrat geworden.';
-    $('comparePanel').classList.add('show');
-
-    const r = $('rectViz');
-    r.classList.add('pulse');
-    setTimeout(() => r.classList.remove('pulse'), 900);
-    revealStep('step4');
+    if (pct >= 99.9 && iterCount >= 1) {
+      $('btnCompare').disabled = false;
+      $('btnCompare').textContent = 'Lösung aufdecken – dein Rechteck ist (fast) ein Quadrat!';
+    } else {
+      $('btnCompare').disabled = true;
+      $('btnCompare').textContent = 'Lösung erst bei (fast) perfektem Quadrat';
+    }
   }
 
   // ---------- Iterationsrunde ----------
