@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heron-Verfahren – Rechteck wird Quadrat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F7F6; --card:#FFFFFF; --border:#DEE7E4; --ink:#16241F; --muted:#5C6E6B;
+    --teal:#1F6F6B; --teal-dark:#134744; --teal-tint:#E4F0EF;
+    --amber:#D98E3B; --amber-tint:#FBEEDD;
+    --red:#C1553D; --red-tint:#FBE9E5;
+    --green:#3D8B5F; --green-tint:#E7F4EC;
+    --display:'Space Grotesk',sans-serif; --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;padding:32px 16px 80px;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  header.head{margin-bottom:28px;max-width:760px;}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-tint);display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:14px;}
+  h1{font-family:var(--display);font-size:clamp(22px,4vw,30px);font-weight:700;margin:0 0 10px;letter-spacing:-0.01em;}
+  .leitfrage{color:var(--muted);font-size:15.5px;}
+  .leitfrage b{color:var(--ink);}
+
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;}
+  @media (max-width:860px){.layout{grid-template-columns:1fr;}}
+
+  .sidebar{position:sticky;top:20px;display:flex;flex-direction:column;gap:16px;}
+  @media (max-width:860px){.sidebar{position:static;}}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 18px;}
+  .card h3{font-family:var(--display);font-size:14.5px;margin:0 0 10px;}
+  .sidebar-placeholder{font-size:13.5px;color:var(--muted);}
+
+  .step{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 26px;margin-bottom:18px;max-height:0;opacity:0;overflow:hidden;padding-top:0;padding-bottom:0;border-width:0;margin-bottom:0;transition:max-height .5s ease, opacity .4s ease, padding .5s ease, margin .5s ease, border-width .3s ease;}
+  .step.visible{max-height:4000px;opacity:1;padding-top:24px;padding-bottom:26px;border-width:1px;margin-bottom:18px;}
+  @media (prefers-reduced-motion: reduce){.step{transition:none;}}
+  .step.locked{background:#FBFCFC;}
+
+  .step-num{font-family:var(--mono);font-size:12px;color:var(--teal);font-weight:700;letter-spacing:.05em;margin-bottom:6px;}
+  .step h2{font-family:var(--display);font-size:19px;margin:0 0 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .lock-badge{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:500;background:#F0F3F2;border:1px solid var(--border);border-radius:20px;padding:2px 10px;display:none;}
+  .step p.hint{color:var(--muted);font-size:14.5px;margin:0 0 16px;}
+  .step p.note{background:var(--teal-tint);color:var(--teal-dark);border-radius:8px;padding:12px 14px;font-size:14px;margin:0 0 16px;}
+
+  label{display:block;font-size:13.5px;font-weight:600;margin-bottom:6px;color:var(--ink);}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;min-width:160px;}
+  input[type=number]{font-family:var(--mono);font-size:16px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#FBFCFC;color:var(--ink);width:200px;}
+  input[type=number]:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
+  input[type=number]:disabled{background:#F0F3F2;color:var(--muted);}
+
+  button{font-family:var(--display);font-weight:600;font-size:14.5px;border:none;border-radius:9px;padding:10px 18px;cursor:pointer;transition:transform .15s ease, background .15s ease;}
+  button:focus-visible{outline:2px solid var(--teal-dark); outline-offset:2px;}
+  button.primary{background:var(--teal);color:#fff;}
+  button.primary:hover:not(:disabled){background:var(--teal-dark);}
+  button.amber{background:var(--amber);color:#fff;}
+  button.amber:hover:not(:disabled){background:#c17c28;}
+  button.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  button.ghost:hover:not(:disabled){background:#F0F3F2;}
+  button:disabled{background:#E3E8E7;color:#9AA6A3;cursor:not-allowed;}
+  button:active:not(:disabled){transform:scale(.97);}
+
+  .hint-box{font-family:-apple-system,sans-serif;font-size:13.5px;background:var(--teal-tint);color:var(--teal-dark);padding:10px 14px;border-radius:8px;margin-top:10px;display:none;}
+  .hint-box.show{display:block;}
+  .hint-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .hint-row button{font-size:12.5px;padding:6px 12px;}
+
+  .feedback{font-size:13.5px;padding:8px 12px;border-radius:8px;margin-top:10px;display:none;font-weight:600;}
+  .feedback.show{display:block;}
+  .feedback.ok{background:var(--green-tint);color:var(--green);}
+  .feedback.bad{background:var(--red-tint);color:var(--red);}
+
+  /* Rechteck */
+  .viz{background:#FAFBFB;border:1px dashed var(--border);border-radius:14px;height:260px;position:relative;display:flex;align-items:center;justify-content:center;}
+  .target-square{position:absolute;border:2px dashed #B9C9C6;border-radius:2px;}
+  .rect{position:absolute;background:var(--teal);opacity:.85;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1), height .6s cubic-bezier(.4,0,.2,1), background .3s ease;}
+  .rect.pulse{background:var(--amber);}
+  .rect.unknown{background-color:transparent;background-image:repeating-linear-gradient(45deg, var(--teal) 0 6px, transparent 6px 12px);opacity:.55;border:1.5px solid var(--teal);}
+  @media (prefers-reduced-motion: reduce){.rect{transition:none;}}
+  .rect-label{position:absolute;font-family:var(--mono);font-size:12px;color:var(--teal-dark);font-weight:700;white-space:nowrap;}
+  .viz-caption{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+
+  .quality-bar-wrap{margin-top:14px;}
+  .quality-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px;font-family:var(--mono);}
+  .quality-track{height:8px;background:#E7EDEC;border-radius:6px;overflow:hidden;}
+  .quality-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--amber));width:0%;transition:width .5s ease;}
+  .solve-row{margin-top:14px;}
+  .solve-row button{width:100%;font-size:13px;}
+
+  /* Iterationswerkzeug */
+  .toolcard{background:#FAFBFB;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-top:20px;}
+  .toolcard.disabled{opacity:.45;pointer-events:none;}
+  .toolcard h3{font-family:var(--display);font-size:15px;margin:0 0 4px;}
+  .toolcard .sub{font-size:13px;color:var(--muted);margin:0 0 12px;font-family:var(--mono);}
+
+  .concept-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .concept-choices button{background:#fff;border:1.5px solid var(--border);color:var(--ink);font-weight:500;padding:8px 16px;display:inline-flex;align-items:center;justify-content:center;}
+  .concept-choices button:hover:not(:disabled){border-color:var(--teal);}
+  .concept-choices button.chosen-ok{background:var(--green-tint);border-color:var(--green);color:var(--green);}
+  .concept-choices button.chosen-bad{background:var(--red-tint);border-color:var(--red);color:var(--red);}
+  .fracsm{font-size:15px;}
+
+  /* Zahlenstrahl */
+  .numberline{position:relative;height:78px;margin:14px 0 6px;display:none;}
+  .nl-track{position:absolute;top:39px;left:6%;right:6%;height:2px;background:var(--border);}
+  .nl-range{position:absolute;top:36px;height:8px;background:var(--teal-tint);border:1px solid var(--teal);border-radius:4px;}
+  .nl-marker{position:absolute;top:39px;transform:translate(-50%,-50%);text-align:center;}
+  .nl-dot{display:block;width:10px;height:10px;background:var(--teal-dark);border-radius:50%;margin:0 auto;}
+  .nl-marker.markX .nl-label{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);}
+  .nl-marker.markY .nl-label{position:absolute;top:16px;left:50%;transform:translateX(-50%);}
+  .nl-label{font-family:var(--mono);font-size:11.5px;color:var(--teal-dark);font-weight:700;white-space:nowrap;}
+  .nl-caption{position:absolute;bottom:-2px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);font-family:-apple-system,sans-serif;}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;}
+  th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);}
+  th:first-child,td:first-child{text-align:left;}
+  th{font-family:-apple-system,sans-serif;font-weight:600;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  tbody tr:last-child td{color:var(--teal-dark);font-weight:700;}
+  .log-empty{font-size:13px;color:var(--muted);}
+
+  .compare-panel{margin-top:18px;background:var(--amber-tint);border:1px solid #EFCE9C;border-radius:10px;padding:16px 18px;display:none;}
+  .compare-panel.show{display:block;}
+  .kv{display:flex;justify-content:space-between;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:var(--mono);font-size:14px;margin-bottom:8px;}
+  .kv span:first-child{color:var(--muted);}
+  .kv span:last-child{font-weight:700;}
+  .compare-msg{margin-top:10px;font-size:14px;}
+
+  /* Schritt 4 */
+  .quiz{background:#FAFBFB;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;}
+  .quiz p.q{font-weight:600;font-size:14.5px;margin:0 0 10px;}
+  .formula-box{background:#FAFBFB;border:1px solid var(--border);border-radius:10px;padding:20px;justify-content:center;margin:14px 0 18px;display:none;}
+  .formula-box.show{display:flex;}
+  .formula{font-family:var(--mono);font-size:22px;display:flex;align-items:center;gap:8px;}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1;}
+  .frac .top{padding:0 4px 2px;border-bottom:2px solid var(--ink);}
+  .frac .bot{padding:2px 4px 0;}
+  sub{font-size:.65em;}
+
+  .mapping{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;}
+  @media (max-width:520px){.mapping{grid-template-columns:1fr;}}
+  .map-item{background:#FAFBFB;border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+  .map-item .sym{font-family:var(--mono);color:var(--teal-dark);font-weight:700;margin-right:8px;}
+
+  .reset-bar{text-align:center;margin-top:8px;}
+  .reset-bar button{background:transparent;color:var(--muted);text-decoration:underline;padding:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <span class="eyebrow">Heron-Verfahren · Lernpfad</span>
+    <h1>Wie findet man die Seitenlänge eines Quadrats, wenn nur seine Fläche bekannt ist?</h1>
+    <p class="leitfrage">Ein Quadrat hat den Flächeninhalt <b>A</b>. Wir starten mit einem Rechteck derselben Fläche und formen es Schritt für Schritt selbst zu einem Quadrat um – ganz ohne Taschenrechner-Wurzelfunktion.</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- LINKE SPALTE -->
+    <aside class="sidebar">
+      <div class="card" id="sidebarPlaceholder">
+        <h3>Dein Rechteck</h3>
+        <p class="sidebar-placeholder">Sobald du einen Startwert gewählt hast, erscheint hier dein Rechteck und begleitet dich durch den ganzen Algorithmus.</p>
+      </div>
+
+      <div class="card" id="vizCard" style="display:none;">
+        <h3>Dein Rechteck</h3>
+        <div class="viz">
+          <div class="target-square" id="targetSquare"></div>
+          <div class="rect" id="rectViz"></div>
+          <div class="rect-label" id="labelX"></div>
+          <div class="rect-label" id="labelY"></div>
+          <div class="viz-caption" id="vizCaption">Startrechteck</div>
+        </div>
+        <div class="quality-bar-wrap">
+          <div class="quality-label"><span>Ähnlichkeit zum Quadrat</span><span id="qualityPct">–</span></div>
+          <div class="quality-track"><div class="quality-fill" id="qualityFill"></div></div>
+        </div>
+      </div>
+
+      <div class="card" id="logCard" style="display:none;">
+        <h3>Protokoll deiner Iterationen</h3>
+        <p class="log-empty" id="logEmpty">Noch keine Iteration durchgeführt.</p>
+        <table id="iterTable" style="display:none;">
+          <thead><tr><th>n</th><th>xₙ</th><th>yₙ</th><th>xₙ₊₁</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </aside>
+
+    <!-- RECHTE SPALTE -->
+    <main>
+
+      <!-- SCHRITT 1 -->
+      <section class="step visible" id="step1">
+        <div class="step-num">SCHRITT 1 / 4</div>
+        <h2>Wähle einen Flächeninhalt <span class="lock-badge" id="lock1"></span></h2>
+        <p class="hint">Stell dir ein Quadrat mit dieser Fläche vor. Gesucht ist seine Seitenlänge – also √A.</p>
+        <div class="row">
+          <div class="field">
+            <label for="areaInput">Flächeninhalt A (cm²)</label>
+            <input type="number" id="areaInput" min="0.01" step="any" placeholder="z. B. 17">
+          </div>
+          <button class="primary" id="btnArea">Weiter</button>
+        </div>
+        <div class="hint-box" id="areaHint"></div>
+      </section>
+
+      <!-- SCHRITT 2 -->
+      <section class="step" id="step2">
+        <div class="step-num">SCHRITT 2 / 4</div>
+        <h2>Wähle selbst einen Startwert <span class="lock-badge" id="lock2"></span></h2>
+        <p class="hint" id="squareHint">Schätze eine erste Seitenlänge x₁ für dein Startrechteck. Sie muss nicht perfekt sein – das Verfahren gleicht sie im Laufe der Zeit aus.</p>
+        <div class="row">
+          <div class="field">
+            <label for="x1Input">Startwert x₁</label>
+            <input type="number" id="x1Input" min="0.01" step="any" placeholder="dein Schätzwert">
+          </div>
+          <button class="primary" id="btnStart">Startrechteck erzeugen</button>
+        </div>
+        <div class="hint-row">
+          <button class="ghost" id="hintBtn_start" disabled>Tipp in 60s</button>
+        </div>
+        <div class="hint-box" id="hintBox_start"></div>
+      </section>
+
+      <!-- SCHRITT 3 -->
+      <section class="step" id="step3">
+        <div class="step-num">SCHRITT 3 / 4</div>
+        <h2>Gleiche das Rechteck selbst an ein Quadrat an <span class="lock-badge" id="lock3"></span></h2>
+        <p class="note" id="step3Intro">–</p>
+
+        <!-- Panel A: y berechnen -->
+        <div class="toolcard" id="panelA">
+          <h3>1. Fehlende Seite y berechnen</h3>
+          <p class="sub" id="panelASub">–</p>
+          <div class="row">
+            <div class="field">
+              <label for="yInput" id="yInputLabel">y = ?</label>
+              <input type="number" id="yInput" step="any" placeholder="auf 4 Nachkommastellen runden">
+            </div>
+            <button class="primary" id="btnCheckA">Prüfen</button>
+          </div>
+          <div class="feedback" id="feedbackA"></div>
+          <div class="hint-row">
+            <button class="ghost" id="hintBtn_A" disabled>Tipp in 60s</button>
+          </div>
+          <div class="hint-box" id="hintBox_A"></div>
+        </div>
+
+        <!-- Panel B: Angleichen -->
+        <div class="toolcard disabled" id="panelB">
+          <h3>2. Beide Seiten angleichen</h3>
+
+          <div class="numberline" id="numberLine">
+            <div class="nl-track"></div>
+            <div class="nl-range" id="nlRange"></div>
+            <div class="nl-marker markX" id="nlMarkerX"><span class="nl-dot"></span><span class="nl-label" id="nlLabelX"></span></div>
+            <div class="nl-marker markY" id="nlMarkerY"><span class="nl-dot"></span><span class="nl-label" id="nlLabelY"></span></div>
+            <div class="nl-caption">Die wahre Seitenlänge √A liegt irgendwo dazwischen.</div>
+          </div>
+
+          <div id="conceptQuestion">
+            <p class="sub" style="font-family:-apple-system,sans-serif;font-size:13.5px;">Die beiden Seiten sind unterschiedlich lang. Mit welcher Rechenoperation könntest du sie einander annähern?</p>
+            <div class="concept-choices" id="conceptChoices">
+              <button data-choice="differenz">Differenz bilden</button>
+              <button data-choice="mittelwert">Mittelwert bilden</button>
+              <button data-choice="groesser">Größere Seite behalten</button>
+              <button data-choice="summe">Beide addieren</button>
+            </div>
+            <div class="feedback" id="feedbackConcept"></div>
+          </div>
+          <div id="meanTool" style="display:none;margin-top:14px;">
+            <p class="sub" id="panelBSub">–</p>
+            <div class="row">
+              <div class="field">
+                <label id="meanInputLabel" for="meanInput">Mittelwert = ?</label>
+                <input type="number" id="meanInput" step="any" placeholder="auf 4 Nachkommastellen runden">
+              </div>
+              <button class="primary" id="btnCheckB">Prüfen</button>
+            </div>
+            <div class="feedback" id="feedbackB"></div>
+            <div class="hint-row">
+              <button class="ghost" id="hintBtn_B" disabled>Tipp in 60s</button>
+            </div>
+            <div class="hint-box" id="hintBox_B">Tipp: Der Mittelwert zweier Zahlen x und y ist (x + y) ÷ 2 – addiere beide Seiten und teile durch 2.</div>
+          </div>
+        </div>
+
+        <!-- Panel C: Übernehmen -->
+        <div class="toolcard disabled" id="panelC">
+          <h3>3. Neuen Startwert übernehmen</h3>
+          <p class="sub" id="panelCSub" style="font-family:-apple-system,sans-serif;">–</p>
+          <button class="primary" id="btnCommit" disabled>Als neuen Startwert übernehmen</button>
+        </div>
+
+        <div class="compare-panel" id="comparePanel">
+          <div class="kv"><span>dein Näherungswert</span><span id="cmpApprox">–</span></div>
+          <div class="kv"><span>exakter Wert √A</span><span id="cmpExact">–</span></div>
+          <div class="kv"><span>Abweichung</span><span id="cmpDiff">–</span></div>
+          <p class="compare-msg" id="cmpMsg"></p>
+        </div>
+      </section>
+
+      <!-- SCHRITT 4 -->
+      <section class="step" id="step4">
+        <div class="step-num">SCHRITT 4 / 4</div>
+        <h2>Vom eigenen Rechenweg zur Formel</h2>
+        <p class="hint">Du hast das Verfahren bereits von Hand durchgeführt. Jetzt übersetzen wir deinen Rechenweg in eine allgemeine Formel.</p>
+
+        <div class="quiz">
+          <p class="q">1. Welcher Ausdruck beschreibt die fehlende Seite y deines Rechtecks?</p>
+          <div class="concept-choices" id="quiz1Choices">
+            <button data-choice="a_xn"><span class="frac fracsm"><span class="top">A</span><span class="bot">x<sub>n</sub></span></span></button>
+            <button data-choice="xn_a"><span class="frac fracsm"><span class="top">x<sub>n</sub></span><span class="bot">A</span></span></button>
+            <button data-choice="a_times_xn">A · x<sub>n</sub></button>
+          </div>
+          <div class="feedback" id="quiz1Feedback"></div>
+        </div>
+
+        <div class="quiz" id="quiz2" style="display:none;">
+          <p class="q">2. Welcher Ausdruck beschreibt, wie du beide Seiten angleichst?</p>
+          <div class="concept-choices" id="quiz2Choices">
+            <button data-choice="diff">x<sub>n</sub> − y<sub>n</sub></button>
+            <button data-choice="mean"><span class="frac fracsm"><span class="top">x<sub>n</sub> + y<sub>n</sub></span><span class="bot">2</span></span></button>
+            <button data-choice="prod">x<sub>n</sub> · y<sub>n</sub></button>
+          </div>
+          <div class="feedback" id="quiz2Feedback"></div>
+        </div>
+
+        <div class="quiz" id="task3" style="display:none;">
+          <p class="q">3. Wie kommst du nun auf die neue Seitenlänge x<sub>n+1</sub>? Formuliere deine eigene Rechenvorschrift.</p>
+          <div class="row">
+            <div class="field" style="flex:1;min-width:260px;">
+              <label for="formulaInput">Deine Formel für x<sub>n+1</sub></label>
+              <input type="text" id="formulaInput" placeholder="z. B. (x_n + A/x_n) / 2">
+            </div>
+            <button class="primary" id="btnCheckFormula">Prüfen</button>
+          </div>
+          <p class="sub" style="font-family:-apple-system,sans-serif;font-size:13px;margin-top:10px;">
+            Verfügbare Größen: <b>A</b> (Flächeninhalt) · <b>x_n</b> (aktuelle Seite) · <b>y_n</b> (fehlende Seite, = A/x_n)
+          </p>
+          <p class="sub" style="font-family:-apple-system,sans-serif;font-size:12.5px;">
+            Tipp zur Eingabe: xₙ schreibst du als <code>x_n</code>, yₙ als <code>y_n</code>, den Flächeninhalt als <code>A</code>. Division mit <code>/</code>, Multiplikation mit <code>*</code>, Klammern mit <code>( )</code>.
+          </p>
+          <div class="feedback" id="feedbackFormula"></div>
+          <div class="hint-row">
+            <button class="ghost" id="hintBtn_formula" disabled>Tipp in 60s</button>
+          </div>
+          <div class="hint-box" id="hintBox_formula">Tipp: Du hast x_n und y_n bei jeder Iteration auf dieselbe Weise zusammengeführt. Schreibe genau diese Rechnung mit den Variablen aus dieser Aufgabe auf.</div>
+        </div>
+
+        <div class="formula-box" id="formulaBox">
+          <div class="formula">
+            <span>x<sub>n+1</sub> =</span>
+            <span class="frac"><span class="top">1</span><span class="bot">2</span></span>
+            <span>·</span>
+            <span>( x<sub>n</sub> +</span>
+            <span class="frac"><span class="top">A</span><span class="bot">x<sub>n</sub></span></span>
+            <span>)</span>
+          </div>
+        </div>
+
+        <div class="mapping" id="mapping" style="display:none;">
+          <div class="map-item"><span class="sym">A</span>Flächeninhalt des Quadrats (bleibt konstant)</div>
+          <div class="map-item"><span class="sym">x₁</span>dein gewählter Startwert</div>
+          <div class="map-item"><span class="sym">xₙ</span>aktuelle Seitenlänge im Schritt n</div>
+          <div class="map-item"><span class="sym">yₙ = A / xₙ</span>die fehlende, zweite Seite des Rechtecks</div>
+          <div class="map-item"><span class="sym">xₙ₊₁</span>der Mittelwert – neue, bessere Näherung</div>
+          <div class="map-item"><span class="sym">n → ∞</span>xₙ nähert sich √A beliebig genau an</div>
+        </div>
+      </section>
+
+      <div class="reset-bar">
+        <button id="btnReset">↺ Verfahren neu starten (neue Fläche wählen)</button>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const EPS = 0.0001; // Toleranz entspricht Rundung auf 4 Nachkommastellen
+
+  let A = null, xn = null, iterCount = 0;
+  let yCorrect = null, meanCorrect = null, studentY = null;
+  let conceptSolved = false;
+  let scale = null;
+  const maxDim = 180;
+  const timers = {};
+  const subMap = {'0':'\u2080','1':'\u2081','2':'\u2082','3':'\u2083','4':'\u2084','5':'\u2085','6':'\u2086','7':'\u2087','8':'\u2088','9':'\u2089'};
+  function sub(n){ return String(n).split('').map(d => subMap[d] || d).join(''); }
+  function fmt(n){ return Number(n).toFixed(4); }
+  function closeEnough(val, target){ return Math.abs(val - target) <= EPS; }
+
+  function startHintTimer(key, seconds){
+    const btn = $('hintBtn_' + key);
+    const box = $('hintBox_' + key);
+    if (!btn) return;
+    box.classList.remove('show');
+    if (timers[key]) clearInterval(timers[key]);
+    let remaining = seconds;
+    btn.disabled = true;
+    btn.textContent = 'Tipp in ' + remaining + 's';
+    btn.onclick = () => { if(!btn.disabled) box.classList.toggle('show'); };
+    timers[key] = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(timers[key]);
+        btn.disabled = false;
+        btn.textContent = 'Tipp anzeigen';
+      } else {
+        btn.textContent = 'Tipp in ' + remaining + 's';
+      }
+    }, 1000);
+  }
+
+  // ---------- Schritt 1: Flaeche ----------
+  $('btnArea').addEventListener('click', () => {
+    const val = parseFloat($('areaInput').value);
+    if (!val || val <= 0) {
+      $('areaHint').textContent = 'Bitte gib einen Flächeninhalt größer als 0 ein.';
+      $('areaHint').classList.add('show');
+      return;
+    }
+    A = val;
+    $('areaHint').textContent = 'Alles klar: dein Quadrat hat den Flächeninhalt A = ' + fmt(A) + ' cm².';
+    $('areaHint').classList.add('show');
+
+    $('areaInput').disabled = true;
+    $('btnArea').disabled = true;
+    $('lock1').textContent = '🔒 A = ' + fmt(A) + ' – gesperrt bis Neustart';
+    $('lock1').style.display = 'inline-block';
+    $('step1').classList.add('locked');
+
+    const lower = Math.floor(Math.sqrt(A));
+    const upper = Math.ceil(Math.sqrt(A));
+    let tip;
+    if (lower === upper || lower*lower === A) {
+      tip = 'A = ' + fmt(A) + ' ist eine Quadratzahl: √A = ' + fmt(Math.sqrt(A)) + '. Teste das Verfahren trotzdem!';
+    } else {
+      tip = 'A = ' + fmt(A) + ' liegt zwischen ' + lower + '² = ' + (lower*lower) + ' und ' + upper + '² = ' + (upper*upper) + ' → ein Startwert dazwischen ist sinnvoll.';
+    }
+    $('hintBox_start').textContent = 'Tipp: ' + tip;
+
+    revealStep('step2');
+    startHintTimer('start', 60);
+  });
+
+  // ---------- Schritt 2: Startwert ----------
+  $('btnStart').addEventListener('click', () => {
+    const val = parseFloat($('x1Input').value);
+    if (!val || val <= 0) return;
+    xn = val;
+    iterCount = 0;
+    conceptSolved = false;
+    $('tableBody').innerHTML = '';
+    $('logEmpty').style.display = 'block';
+    $('iterTable').style.display = 'none';
+    $('comparePanel').classList.remove('show');
+    $('btnCompare').disabled = true;
+    $('btnCompare').textContent = 'Lösung erst bei (fast) perfektem Quadrat';
+    $('qualityFill').style.width = '0%';
+    $('qualityPct').textContent = '–';
+
+    $('x1Input').disabled = true;
+    $('btnStart').disabled = true;
+    $('lock2').textContent = '🔒 x₁ = ' + fmt(xn) + ' – gesperrt bis Neustart';
+    $('lock2').style.display = 'inline-block';
+    $('step2').classList.add('locked');
+
+    $('sidebarPlaceholder').style.display = 'none';
+    $('vizCard').style.display = 'block';
+    $('logCard').style.display = 'block';
+
+    const areaOfSquare = xn*xn;
+    $('step3Intro').innerHTML = 'Ein Quadrat mit deiner geschätzten Seitenlänge x₁ = ' + fmt(xn) + ' hätte den Flächeninhalt x₁² = ' + fmt(areaOfSquare) + '. Wir wollen aber den anfangs gewählten Flächeninhalt A = ' + fmt(A) + ' erhalten. Damit dieser Flächeninhalt bei der geschätzten ersten Seitenlänge x₁ entsteht, muss die zweite Seite y₁ erst berechnet werden. Dabei entsteht dann allerdings kein Quadrat, sondern ein Rechteck.';
+
+    initViz();
+    beginRound();
+    revealStep('step3');
+  });
+
+  // ---------- Visualisierung ----------
+  function initViz(){
+    const yGuess = A / xn;
+    const longest = Math.max(xn, yGuess, Math.sqrt(A));
+    scale = maxDim / longest;
+    const side = Math.sqrt(A) * scale;
+    const t = $('targetSquare');
+    t.style.width = side + 'px';
+    t.style.height = side + 'px';
+    drawUnknownRect(1);
+  }
+
+  function drawUnknownRect(idx){
+    const r = $('rectViz');
+    const rw = xn*scale, rh = xn*scale*0.55;
+    r.classList.add('unknown');
+    r.classList.remove('pulse');
+    r.style.width = rw + 'px';
+    r.style.height = rh + 'px';
+    $('vizCaption').textContent = 'x' + sub(idx) + ' bekannt, y' + sub(idx) + ' noch unbekannt';
+    $('labelX').style.left = 'calc(50% - ' + (rw/2) + 'px)';
+    $('labelX').style.top = 'calc(50% - ' + (rh/2 + 18) + 'px)';
+    $('labelX').textContent = 'x' + sub(idx) + ' = ' + fmt(xn);
+    $('labelY').style.left = 'calc(50% + ' + (rw/2 + 8) + 'px)';
+    $('labelY').style.top = 'calc(50% - 6px)';
+    $('labelY').textContent = 'y' + sub(idx) + ' = ?';
+  }
+
+  function drawKnownRect(x, y, idx){
+    const r = $('rectViz');
+    const rw = x*scale, rh = y*scale;
+    r.classList.remove('unknown');
+    r.style.width = rw + 'px';
+    r.style.height = rh + 'px';
+    $('vizCaption').textContent = 'Seiten: ' + fmt(x) + '  ×  ' + fmt(y);
+    $('labelX').style.left = 'calc(50% - ' + (rw/2) + 'px)';
+    $('labelX').style.top = 'calc(50% - ' + (rh/2 + 18) + 'px)';
+    $('labelX').textContent = 'x' + sub(idx) + ' = ' + fmt(x);
+    $('labelY').style.left = 'calc(50% + ' + (rw/2 + 8) + 'px)';
+    $('labelY').style.top = 'calc(50% - 6px)';
+    $('labelY').textContent = 'y' + sub(idx) + ' = ' + fmt(y);
+  }
+
+  function renderNumberLine(x, y, idx){
+    const lo = Math.min(x,y), hi = Math.max(x,y);
+    const pad = (hi-lo)*0.6 || hi*0.15 || 1;
+    const low = lo - pad, high = hi + pad;
+    const pct = v => ((v-low)/(high-low))*100;
+    $('nlRange').style.left = pct(lo) + '%';
+    $('nlRange').style.width = Math.max(0.5,(pct(hi)-pct(lo))) + '%';
+    $('nlMarkerX').style.left = pct(x) + '%';
+    $('nlMarkerY').style.left = pct(y) + '%';
+    $('nlLabelX').textContent = 'x' + sub(idx) + ' = ' + fmt(x);
+    $('nlLabelY').textContent = 'y' + sub(idx) + ' = ' + fmt(y);
+    $('numberLine').style.display = 'block';
+  }
+
+  function updateQuality(){
+    const y = A / xn;
+    const mean = (xn + y) / 2;
+    const q = 1 - Math.abs(xn - y) / mean;
+    const pct = Math.max(0, Math.min(100, q*100));
+    $('qualityFill').style.width = pct + '%';
+    $('qualityPct').textContent = pct.toFixed(2) + ' %';
+  }
+
+  function isSolved(){
+    return xn.toFixed(4) === Math.sqrt(A).toFixed(4);
+  }
+
+  function revealSolution(){
+    document.querySelectorAll('#step3 .toolcard').forEach(tc => tc.classList.add('disabled'));
+    $('lock3').textContent = '🔒 gelöst – gesperrt bis Neustart';
+    $('lock3').style.display = 'inline-block';
+    $('step3').classList.add('locked');
+
+    const exact = Math.sqrt(A);
+    $('cmpApprox').textContent = fmt(xn);
+    $('cmpExact').textContent = fmt(exact);
+    $('cmpDiff').textContent = fmt(Math.abs(xn - exact));
+    $('cmpMsg').textContent = 'Sehr genau – dein Rechteck ist praktisch ein Quadrat geworden.';
+    $('comparePanel').classList.add('show');
+
+    const r = $('rectViz');
+    r.classList.add('pulse');
+    setTimeout(() => r.classList.remove('pulse'), 900);
+    revealStep('step4');
+  }
+
+  // ---------- Iterationsrunde ----------
+  function beginRound(){
+    const idx = iterCount+1;
+    yCorrect = A / xn;
+    meanCorrect = null;
+    studentY = null;
+
+    $('panelASub').textContent = 'aktuelle Seite x' + sub(idx) + ' = ' + fmt(xn) + '  und  Flächeninhalt A = ' + fmt(A);
+    $('yInputLabel').textContent = 'y' + sub(idx) + ' = ?';
+    $('yInput').value = '';
+    $('feedbackA').className = 'feedback';
+    $('panelA').classList.remove('disabled');
+    $('panelB').classList.add('disabled');
+    $('panelC').classList.add('disabled');
+    $('btnCommit').disabled = true;
+
+    $('numberLine').style.display = 'none';
+    $('meanTool').style.display = 'none';
+    $('meanInput').value = '';
+    $('feedbackB').className = 'feedback';
+    $('conceptQuestion').style.display = conceptSolved ? 'none' : 'block';
+    $('feedbackConcept').className = 'feedback';
+    document.querySelectorAll('#conceptChoices button').forEach(b => { b.classList.remove('chosen-ok','chosen-bad'); b.disabled=false; });
+
+    $('hintBox_A').textContent = 'Tipp: Nutze den Flächeninhalt A und die bekannte Seite x' + sub(idx) + ', um die fehlende Seite y' + sub(idx) + ' zu berechnen.';
+    startHintTimer('A', 60);
+    // Hinweis: Die bisherige Rechteck-Ansicht bleibt bewusst stehen, bis y neu berechnet wurde.
+  }
+
+  $('btnCheckA').addEventListener('click', () => {
+    const idx = iterCount+1;
+    const val = parseFloat($('yInput').value);
+    const fb = $('feedbackA');
+    if (isNaN(val)) return;
+    if (closeEnough(val, yCorrect)) {
+      studentY = val;
+      fb.textContent = 'Richtig! y' + sub(idx) + ' = ' + fmt(val);
+      fb.className = 'feedback show ok';
+      $('panelB').classList.remove('disabled');
+      drawKnownRect(xn, val, idx);
+      renderNumberLine(xn, val, idx);
+      $('panelBSub').textContent = 'x' + sub(idx) + ' = ' + fmt(xn) + '  und  y' + sub(idx) + ' = ' + fmt(val);
+      $('meanInputLabel').textContent = 'Mittelwert von x' + sub(idx) + ' und y' + sub(idx) + ' = ?';
+      if (conceptSolved) {
+        $('meanTool').style.display = 'block';
+        startHintTimer('B', 60);
+      }
+    } else {
+      fb.textContent = 'Noch nicht richtig (auf 4 Nachkommastellen runden). Nutze A und x' + sub(idx) + ', um y' + sub(idx) + ' zu bestimmen.';
+      fb.className = 'feedback show bad';
+    }
+  });
+
+  document.getElementById('conceptChoices').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const choice = btn.dataset.choice;
+    const fb = $('feedbackConcept');
+    if (choice === 'mittelwert') {
+      btn.classList.add('chosen-ok');
+      document.querySelectorAll('#conceptChoices button').forEach(b => b.disabled = true);
+      fb.textContent = 'Genau! Der Mittelwert bringt beide Seiten näher zueinander.';
+      fb.className = 'feedback show ok';
+      conceptSolved = true;
+      $('meanTool').style.display = 'block';
+      startHintTimer('B', 60);
+    } else {
+      btn.classList.add('chosen-bad');
+      fb.textContent = 'Das gleicht die Seiten nicht wirklich an – probier eine andere Operation.';
+      fb.className = 'feedback show bad';
+    }
+  });
+
+  $('btnCheckB').addEventListener('click', () => {
+    if (studentY === null) return;
+    meanCorrect = (xn + studentY) / 2;
+    const val = parseFloat($('meanInput').value);
+    const fb = $('feedbackB');
+    if (isNaN(val)) return;
+    if (closeEnough(val, meanCorrect)) {
+      fb.textContent = 'Richtig! Mittelwert = ' + fmt(val);
+      fb.className = 'feedback show ok';
+      $('panelC').classList.remove('disabled');
+      $('btnCommit').disabled = false;
+      $('btnCommit').dataset.mean = val;
+      $('panelCSub').textContent = 'x' + sub(iterCount+2) + ' = ' + fmt(val) + ' wird die neue Seite deines nächsten Rechtecks.';
+    } else {
+      fb.textContent = 'Noch nicht richtig (auf 4 Nachkommastellen runden). Mittelwert = (Seite 1 + Seite 2) ÷ 2.';
+      fb.className = 'feedback show bad';
+    }
+  });
+
+  $('btnCommit').addEventListener('click', () => {
+    const mean = parseFloat($('btnCommit').dataset.mean);
+    const idx = iterCount+1;
+    iterCount++;
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + idx + '</td><td>' + fmt(xn) + '</td><td>' + fmt(studentY) + '</td><td>' + fmt(mean) + '</td>';
+    $('tableBody').appendChild(tr);
+    $('logEmpty').style.display = 'none';
+    $('iterTable').style.display = 'table';
+
+    xn = mean;
+    updateQuality();
+    beginRound();
+  });
+
+  $('btnCompare').addEventListener('click', () => {
+    if ($('btnCompare').disabled) return;
+    const exact = Math.sqrt(A);
+    const approx = xn;
+    const diff = Math.abs(approx - exact);
+    $('cmpApprox').textContent = fmt(approx);
+    $('cmpExact').textContent = fmt(exact);
+    $('cmpDiff').textContent = fmt(diff);
+    let msg;
+    if (diff < 0.0001) msg = 'Sehr genau – dein Rechteck ist praktisch ein Quadrat geworden.';
+    else if (diff < 0.01) msg = 'Sehr nah dran. Ein weiterer Schritt würde die Genauigkeit noch verbessern.';
+    else msg = 'Schon nah dran – bei Bedarf kannst du noch weiter iterieren.';
+    $('cmpMsg').textContent = msg;
+    $('comparePanel').classList.add('show');
+    const r = $('rectViz');
+    r.classList.add('pulse');
+    setTimeout(() => r.classList.remove('pulse'), 900);
+    revealStep('step4');
+  });
+
+  // ---------- Schritt 4: Quiz + Formel ----------
+  document.getElementById('quiz1Choices').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const fb = $('quiz1Feedback');
+    if (btn.dataset.choice === 'a_xn') {
+      btn.classList.add('chosen-ok');
+      document.querySelectorAll('#quiz1Choices button').forEach(b => b.disabled = true);
+      fb.textContent = 'Richtig – genau das hast du im Rechteck immer wieder berechnet.';
+      fb.className = 'feedback show ok';
+      $('quiz2').style.display = 'block';
+    } else {
+      btn.classList.add('chosen-bad');
+      fb.textContent = 'Nicht ganz – A musste durch die bekannte Seite geteilt werden.';
+      fb.className = 'feedback show bad';
+    }
+  });
+
+  document.getElementById('quiz2Choices').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const fb = $('quiz2Feedback');
+    if (btn.dataset.choice === 'mean') {
+      btn.classList.add('chosen-ok');
+      document.querySelectorAll('#quiz2Choices button').forEach(b => b.disabled = true);
+      fb.textContent = 'Genau dein Vorgehen – der Mittelwert beider Seiten.';
+      fb.className = 'feedback show ok';
+      $('formulaBox').classList.add('show');
+      $('mapping').style.display = 'grid';
+    } else {
+      btn.classList.add('chosen-bad');
+      fb.textContent = 'Das war nicht dein Rechenweg – überleg nochmal, wie du beide Seiten angeglichen hast.';
+      fb.className = 'feedback show bad';
+    }
+  });
+
+  // ---------- reveal / reset ----------
+  function revealStep(id){
+    $(id).classList.add('visible');
+    setTimeout(() => $(id).scrollIntoView({behavior:'smooth', block:'nearest'}), 150);
+  }
+
+  $('btnReset').addEventListener('click', () => {
+    A = null; xn = null; iterCount = 0; conceptSolved = false;
+    Object.values(timers).forEach(t => clearInterval(t));
+
+    $('areaInput').value = '';
+    $('areaInput').disabled = false;
+    $('btnArea').disabled = false;
+    $('lock1').style.display = 'none';
+    $('step1').classList.remove('locked');
+    $('areaHint').classList.remove('show');
+
+    $('x1Input').value = '';
+    $('x1Input').disabled = false;
+    $('btnStart').disabled = false;
+    $('lock2').style.display = 'none';
+    $('step2').classList.remove('locked');
+
+    $('tableBody').innerHTML = '';
+    $('comparePanel').classList.remove('show');
+    $('sidebarPlaceholder').style.display = 'block';
+    $('vizCard').style.display = 'none';
+    $('logCard').style.display = 'none';
+    $('numberLine').style.display = 'none';
+    $('quiz2').style.display = 'none';
+    $('formulaBox').classList.remove('show');
+    $('mapping').style.display = 'none';
+    document.querySelectorAll('#quiz1Choices button, #quiz2Choices button').forEach(b => { b.disabled=false; b.classList.remove('chosen-ok','chosen-bad'); });
+    $('quiz1Feedback').className = 'feedback';
+    $('quiz2Feedback').className = 'feedback';
+    ['step2','step3','step4'].forEach(id => $(id).classList.remove('visible'));
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+})();
+</script>
+</body>
+</html>
